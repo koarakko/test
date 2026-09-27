@@ -1,0 +1,115 @@
+name: Build VOICEVOX Lite Aoyama Ryusei
+
+on:
+  push:
+    paths:
+      - ".github/workflows/build-voicevox-lite-aoyama.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build lightweight runtime
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p voicevox-lite/{core,onnxruntime,dict,models,scripts,licenses}
+
+          curl -fL --retry 5             https://github.com/VOICEVOX/voicevox_core/releases/download/0.17.0/voicevox_core-0.17.0-cp310-abi3-manylinux_2_34_x86_64.whl             -o voicevox-lite/core/voicevox_core-0.17.0-cp310-abi3-manylinux_2_34_x86_64.whl
+
+          curl -fL --retry 5             https://github.com/VOICEVOX/onnxruntime-builder/releases/download/voicevox_onnxruntime-1.23.2/voicevox_onnxruntime-linux-x64-1.23.2.tgz             -o /tmp/onnxruntime.tgz
+          tar -xzf /tmp/onnxruntime.tgz -C voicevox-lite/onnxruntime --strip-components=1
+
+          curl -fL --retry 5             https://github.com/r9y9/open_jtalk/releases/download/v1.11.1/open_jtalk_dic_utf_8-1.11.tar.gz             -o /tmp/open_jtalk_dic.tar.gz
+          tar -xzf /tmp/open_jtalk_dic.tar.gz -C voicevox-lite/dict
+
+          curl -fL --retry 5             https://github.com/VOICEVOX/voicevox_vvm/releases/download/0.17.0/15.vvm             -o voicevox-lite/models/15.vvm
+
+          curl -fL --retry 5             https://raw.githubusercontent.com/VOICEVOX/voicevox_vvm/main/TERMS.md             -o voicevox-lite/licenses/VOICEVOX_VVM_TERMS.md || true
+          curl -fL --retry 5             https://raw.githubusercontent.com/VOICEVOX/voicevox_core/main/LICENSE             -o voicevox-lite/licenses/VOICEVOX_CORE_LICENSE || true
+
+          cat > voicevox-lite/scripts/synthesize.py <<'PY'
+          import multiprocessing
+          import sys
+          from pathlib import Path
+          from voicevox_core import AccelerationMode
+          from voicevox_core.blocking import Onnxruntime, OpenJtalk, Synthesizer, VoiceModelFile
+
+          root = Path(__file__).resolve().parents[1]
+          ort = next((root / "onnxruntime").rglob("libvoicevox_onnxruntime.so*"))
+          dic = root / "dict" / "open_jtalk_dic_utf_8-1.11"
+          vvm = root / "models" / "15.vvm"
+          out = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("output.wav")
+          text = sys.argv[1] if len(sys.argv) > 1 else "ボイスボックスの動作確認です。"
+          style_id = 13
+
+          runtime = Onnxruntime.load_once(filename=str(ort))
+          synth = Synthesizer(
+              runtime,
+              OpenJtalk(dic),
+              acceleration_mode=AccelerationMode.CPU,
+              cpu_num_threads=max(2, min(multiprocessing.cpu_count(), 4)),
+          )
+          with VoiceModelFile.open(vvm) as model:
+              synth.load_voice_model(model)
+          query = synth.create_audio_query(text, style_id)
+          query.speed_scale = 1.08
+          out.write_bytes(synth.synthesis(query, style_id))
+          PY
+
+          python -m pip install --no-deps voicevox-lite/core/*.whl
+          python voicevox-lite/scripts/synthesize.py "ボイスボックスの動作確認です。" /tmp/test.wav
+          test -s /tmp/test.wav
+
+          CORE_SHA=$(sha256sum voicevox-lite/core/*.whl | awk '{print $1}')
+          ORT_SHA=$(sha256sum /tmp/onnxruntime.tgz | awk '{print $1}')
+          VVM_SHA=$(sha256sum voicevox-lite/models/15.vvm | awk '{print $1}')
+          cat > voicevox-lite/manifest.json <<JSON
+          {
+            "platform": "linux",
+            "architecture": "x86_64",
+            "core_version": "0.17.0",
+            "onnxruntime_version": "1.23.2",
+            "vvm_version": "0.17.0",
+            "speaker": "青山龍星",
+            "style": "ノーマル",
+            "style_id": 13,
+            "vvm_filename": "15.vvm",
+            "sha256": {
+              "core_wheel": "$CORE_SHA",
+              "onnxruntime_archive": "$ORT_SHA",
+              "vvm": "$VVM_SHA"
+            }
+          }
+          JSON
+
+          tar -C voicevox-lite -czf voicevox-lite-core0.17.0-aoyama.tar.gz .
+          sha256sum voicevox-lite-core0.17.0-aoyama.tar.gz > voicevox-lite-core0.17.0-aoyama.tar.gz.sha256
+          ls -lh voicevox-lite-core0.17.0-aoyama.tar.gz
+
+          SIZE=$(stat -c%s voicevox-lite-core0.17.0-aoyama.tar.gz)
+          if [ "$SIZE" -gt 125829120 ]; then
+            split -b 120M -d -a 3 voicevox-lite-core0.17.0-aoyama.tar.gz voicevox-lite-core0.17.0-aoyama.part.
+            rm voicevox-lite-core0.17.0-aoyama.tar.gz
+          fi
+
+      - name: Upload lightweight runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-lite-core0.17.0-aoyama
+          path: |
+            voicevox-lite-core0.17.0-aoyama.tar.gz
+            voicevox-lite-core0.17.0-aoyama.tar.gz.sha256
+            voicevox-lite-core0.17.0-aoyama.part.*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
