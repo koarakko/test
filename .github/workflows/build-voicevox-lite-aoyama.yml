@@ -56,7 +56,7 @@ jobs:
           synth = Synthesizer(
               runtime,
               OpenJtalk(dic),
-              acceleration_mode=AccelerationMode.CPU,
+              acceleration_mode="CPU",
               cpu_num_threads=max(2, min(multiprocessing.cpu_count(), 4)),
           )
           with VoiceModelFile.open(vvm) as model:
