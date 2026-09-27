@@ -1,0 +1,62 @@
+name: Build TypeScript Types Podcast
+
+on:
+  push:
+    paths:
+      - "podcast/typescript-types/**"
+      - ".github/workflows/typescript-types-podcast.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Start VOICEVOX ENGINE
+        run: |
+          docker pull voicevox/voicevox_engine:cpu-latest
+          docker run -d --name voicevox -p 127.0.0.1:50021:50021 voicevox/voicevox_engine:cpu-latest
+          for i in {1..120}; do
+            if curl -fsS http://127.0.0.1:50021/version; then
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:50021/speakers > /tmp/speakers.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('/tmp/speakers.json'))
+          found=[]
+          for s in x:
+              if s.get('name') == '青山龍星':
+                  found.append((s['name'], [(st['name'], st['id']) for st in s['styles']]))
+          print(found)
+          assert any(st[1] == 13 for _, styles in found for st in styles), "青山龍星 Style ID 13 not found"
+          PY
+
+      - name: Synthesize podcast
+        run: |
+          python3 podcast/typescript-types/synthesize.py
+
+      - name: Copy script
+        run: |
+          cp podcast/typescript-types/voice.txt podcast/typescript-types/out/voice-script.txt
+
+      - name: Upload podcast artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: typescript-types-podcast
+          path: |
+            podcast/typescript-types/out/typescript-types-podcast.mp3
+            podcast/typescript-types/out/voice-script.txt
+            podcast/typescript-types/out/chunks.json
+          compression-level: 0
+          retention-days: 7
