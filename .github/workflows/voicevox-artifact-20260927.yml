@@ -1,0 +1,32 @@
+name: VOICEVOX Artifact Relay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/voicevox-artifact-20260927.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download VOICEVOX Engine
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 5 --retry-delay 5 \
+            "https://github.com/VOICEVOX/voicevox_engine/releases/download/0.25.2/voicevox_engine-linux-cpu-x64-0.25.2.7z.001" \
+            -o voicevox_engine-linux-cpu-x64-0.25.2.7z.001
+          sha256sum voicevox_engine-linux-cpu-x64-0.25.2.7z.001
+
+      - name: Upload engine artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-engine-linux-cpu-x64-0.25.2
+          path: voicevox_engine-linux-cpu-x64-0.25.2.7z.001
+          compression-level: 0
+          retention-days: 1
