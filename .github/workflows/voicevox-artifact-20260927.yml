@@ -22,11 +22,45 @@ jobs:
             "https://github.com/VOICEVOX/voicevox_engine/releases/download/0.25.2/voicevox_engine-linux-cpu-x64-0.25.2.7z.001" \
             -o voicevox_engine-linux-cpu-x64-0.25.2.7z.001
           sha256sum voicevox_engine-linux-cpu-x64-0.25.2.7z.001
+          split -b 400M -d -a 2 voicevox_engine-linux-cpu-x64-0.25.2.7z.001 voicevox.part.
+          ls -lh voicevox.part.*
 
-      - name: Upload engine artifact
+      - name: Upload part 00
         uses: actions/upload-artifact@v4
         with:
-          name: voicevox-engine-linux-cpu-x64-0.25.2
-          path: voicevox_engine-linux-cpu-x64-0.25.2.7z.001
+          name: voicevox-engine-part-00
+          path: voicevox.part.00
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload part 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-engine-part-01
+          path: voicevox.part.01
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload part 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-engine-part-02
+          path: voicevox.part.02
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload part 03
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-engine-part-03
+          path: voicevox.part.03
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload part 04
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-engine-part-04
+          path: voicevox.part.04
           compression-level: 0
           retention-days: 1
