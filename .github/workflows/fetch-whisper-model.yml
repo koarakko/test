@@ -1,0 +1,46 @@
+name: Fetch Whisper large-v3-turbo-q5_0
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/fetch-whisper-model.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-model:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p bundle
+
+          echo "Downloading ggml-large-v3-turbo-q5_0.bin..."
+          curl --fail --location --retry 5 --retry-delay 3 \
+            --output bundle/ggml-large-v3-turbo-q5_0.bin \
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin?download=true"
+
+          echo "Downloading whisper.cpp Linux x64 runtime..."
+          curl --fail --location --retry 5 --retry-delay 3 \
+            --output whisper-bin-ubuntu-x64.tar.gz \
+            "https://github.com/ggml-org/whisper.cpp/releases/download/b5130/whisper-bin-ubuntu-x64.tar.gz"
+
+          tar -xzf whisper-bin-ubuntu-x64.tar.gz -C bundle
+          rm -f whisper-bin-ubuntu-x64.tar.gz
+
+          (cd bundle && sha256sum ggml-large-v3-turbo-q5_0.bin > SHA256SUMS)
+          du -h bundle/ggml-large-v3-turbo-q5_0.bin
+          find bundle -maxdepth 2 -type f -printf "%p %s bytes\n" | sort
+
+      - name: Upload Whisper bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-large-v3-turbo-q5_0-linux-x64
+          path: bundle/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
