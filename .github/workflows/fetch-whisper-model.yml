@@ -13,7 +13,7 @@ jobs:
   fetch-model:
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare bundle
+      - name: Prepare split bundle
         shell: bash
         run: |
           set -euo pipefail
@@ -33,14 +33,33 @@ jobs:
           rm -f whisper-bin-ubuntu-x64.tar.gz
 
           (cd bundle && sha256sum ggml-large-v3-turbo-q5_0.bin > SHA256SUMS)
-          du -h bundle/ggml-large-v3-turbo-q5_0.bin
-          find bundle -maxdepth 2 -type f -printf "%p %s bytes\n" | sort
+          stat -c '%s' bundle/ggml-large-v3-turbo-q5_0.bin > bundle/MODEL_SIZE
 
-      - name: Upload Whisper bundle
+          split -b 400M bundle/ggml-large-v3-turbo-q5_0.bin bundle/model.part-
+          rm bundle/ggml-large-v3-turbo-q5_0.bin
+
+          echo "Prepared parts:"
+          find bundle -maxdepth 3 -type f -printf "%p %s bytes\n" | sort
+
+      - name: Upload model part A
         uses: actions/upload-artifact@v4
         with:
-          name: whisper-large-v3-turbo-q5_0-linux-x64
-          path: bundle/
+          name: whisper-model-part-a
+          path: bundle/model.part-aa
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload model part B and runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-model-part-b-runtime
+          path: |
+            bundle/model.part-ab
+            bundle/SHA256SUMS
+            bundle/MODEL_SIZE
+            bundle/**
+            !bundle/model.part-aa
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
