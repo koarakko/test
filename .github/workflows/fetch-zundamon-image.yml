@@ -1,0 +1,23 @@
+name: Fetch Zundamon Image
+on:
+  push:
+    paths:
+      - ".github/workflows/fetch-zundamon-image.yml"
+  workflow_dispatch:
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Zundamon standing image
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 5 --retry-delay 2             -o zundamon.png             https://raw.githubusercontent.com/KEIKEI999/VoiceVoxLM/main/assets/avatar/zundamon/base.png
+          file zundamon.png
+          sha256sum zundamon.png > zundamon.png.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zundamon-standing-image
+          path: |
+            zundamon.png
+            zundamon.png.sha256
+          retention-days: 1
