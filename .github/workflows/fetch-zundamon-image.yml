@@ -8,16 +8,17 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Download Zundamon standing image
+      - name: Download Zundamon standing layers
         run: |
           set -euxo pipefail
-          curl -fL --retry 5 --retry-delay 2             -o zundamon.png             https://raw.githubusercontent.com/KEIKEI999/VoiceVoxLM/main/assets/avatar/zundamon/base.png
-          file zundamon.png
-          sha256sum zundamon.png > zundamon.png.sha256
+          mkdir -p zundamon
+          base=https://raw.githubusercontent.com/KEIKEI999/VoiceVoxLM/main/assets/avatar/zundamon
+          curl -fL --retry 5 --retry-delay 2 -o zundamon/base.png "$base/base.png"
+          curl -fL --retry 5 --retry-delay 2 -o zundamon/eyes.png "$base/eyes/Open.png"
+          curl -fL --retry 5 --retry-delay 2 -o zundamon/mouth.png "$base/mouths/A.png"
+          sha256sum zundamon/*.png > zundamon/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
-          name: zundamon-standing-image
-          path: |
-            zundamon.png
-            zundamon.png.sha256
+          name: zundamon-standing-layers
+          path: zundamon
           retention-days: 1
