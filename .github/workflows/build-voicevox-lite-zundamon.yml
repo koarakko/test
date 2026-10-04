@@ -105,20 +105,56 @@ jobs:
 
           tar -C voicevox-lite -czf voicevox-lite-core0.17.0-zundamon.tar.gz .
           sha256sum voicevox-lite-core0.17.0-zundamon.tar.gz > voicevox-lite-core0.17.0-zundamon.tar.gz.sha256
-          SIZE=$(stat -c%s voicevox-lite-core0.17.0-zundamon.tar.gz)
-          if [ "$SIZE" -gt 125829120 ]; then
-            split -b 120M -d -a 3 voicevox-lite-core0.17.0-zundamon.tar.gz voicevox-lite-core0.17.0-zundamon.part.
-            rm voicevox-lite-core0.17.0-zundamon.tar.gz
-          fi
+          split -b 20M -d -a 3 voicevox-lite-core0.17.0-zundamon.tar.gz voicevox-lite-core0.17.0-zundamon.part.
+          sha256sum voicevox-lite-core0.17.0-zundamon.tar.gz > voicevox-lite-core0.17.0-zundamon.tar.gz.sha256
 
-      - name: Upload lightweight runtime
+      - name: Upload runtime part 1
         uses: actions/upload-artifact@v4
         with:
-          name: voicevox-lite-core0.17.0-zundamon
+          name: voicevox-lite-core0.17.0-zundamon-000
           path: |
-            voicevox-lite-core0.17.0-zundamon.tar.gz
+            voicevox-lite-core0.17.0-zundamon.part.000
             voicevox-lite-core0.17.0-zundamon.tar.gz.sha256
-            voicevox-lite-core0.17.0-zundamon.part.*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Upload runtime part 2
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-lite-core0.17.0-zundamon-001
+          path: |
+            voicevox-lite-core0.17.0-zundamon.part.001
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Upload runtime part 3
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-lite-core0.17.0-zundamon-002
+          path: |
+            voicevox-lite-core0.17.0-zundamon.part.002
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Upload runtime part 4
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-lite-core0.17.0-zundamon-003
+          path: |
+            voicevox-lite-core0.17.0-zundamon.part.003
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Upload runtime part 5
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicevox-lite-core0.17.0-zundamon-004
+          path: |
+            voicevox-lite-core0.17.0-zundamon.part.004
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
