@@ -67,8 +67,7 @@ jobs:
           PY
 
           python -m pip install --no-deps voicevox-lite/core/*.whl
-          python voicevox-lite/scripts/synthesize.py "ボイスボックスの動作確認です。" /tmp/test.wav
-          test -s /tmp/test.wav
+          # Synthesis is performed in the ChatGPT execution environment.
 
           CORE_SHA=$(sha256sum voicevox-lite/core/*.whl | awk '{print $1}')
           ORT_SHA=$(sha256sum /tmp/onnxruntime.tgz | awk '{print $1}')
@@ -112,4 +111,4 @@ jobs:
             voicevox-lite-core0.17.0-aoyama.part.*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 7
+          retention-days: 30
